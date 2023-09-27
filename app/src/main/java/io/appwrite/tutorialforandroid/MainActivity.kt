@@ -1,106 +1,137 @@
 package io.appwrite.tutorialforandroid
 
+import IdeasService
+import io.appwrite.Client
+import io.appwrite.models.Document
+import io.appwrite.models.Session
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import io.appwrite.tutorialforandroid.pages.HomePage
+import io.appwrite.tutorialforandroid.pages.IdeasPage
 import io.appwrite.tutorialforandroid.pages.LoginPage
-import io.appwrite.tutorialforandroid.ui.theme.TutorialforandroidTheme
+import io.appwrite.tutorialforandroid.services.UserService
+import io.appwrite.tutorialforandroid.ui.theme.TutorialForAndroidTheme
+import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            TutorialforandroidTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppContent()
-                }
-            }
-        }
-    }
-}
+private const val APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1"
+private const val PROJECT_ID = "[PROJECT_ID]"
 
 enum class Screen {
     User,
     Ideas
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppContent() {
-    var user by remember { mutableStateOf<String?>(null) }
-    var ideas by remember { mutableStateOf<List<String>>(listOf()) }
-    var screen by remember { mutableStateOf(Screen.Ideas) }
+class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val client = Client(applicationContext)
+            .setEndpoint(APPWRITE_ENDPOINT)
+            .setProject(PROJECT_ID)
 
-    Scaffold(
-        bottomBar = {
-            BottomAppBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(onClick = { screen = Screen.Ideas }) {
-                        Icon(Icons.Default.List, contentDescription = "Submissions")
-                        Text("Submissions")
-                    }
-                    IconButton(onClick = { screen = Screen.User }) {
-                        Icon(Icons.Default.Person, contentDescription = "User")
-                        Text("User")
-                    }
-                }
-            }
-        }
-    ) {padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            when (screen) {
-                Screen.User -> LoginPage(
-                    user,
-                    onLogin = { username, password ->
-                        if (password == "123") return@LoginPage;
-                        user = username
-                    },
-                    onRegister = { username, password ->
-                        if (password == "123") return@LoginPage;
-                        user = username
-                    },
-                    onLogout = { user = null }
-                )
-                else -> HomePage(
-                    ideas,
-                    user,
-                    onSubmit = { title, description ->
-                        ideas = ideas.plus(title)
-                    }
-                )
+        val userService = UserService(client)
+        val ideasService = IdeasService(client)
+
+        super.onCreate(savedInstanceState)
+        setContent {
+            TutorialForAndroidTheme {
+                AppMainScreen(userService, ideasService)
             }
         }
     }
 }
 
+@Composable
+private fun AppBottomBar(screen: MutableState<Screen>) {
+    BottomAppBar {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            IconButton(onClick = { screen.value = Screen.Ideas }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.List, contentDescription = "Ideas")
+                    Text("Ideas")
+                }
+            }
+            IconButton(onClick = { screen.value = Screen.User }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Person, contentDescription = "User")
+                    Text("User")
+                }
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppMainScreen(userService: UserService, ideasService: IdeasService) {
+    var user = remember { mutableStateOf<Session?>(null) }
+    var ideas = remember { mutableStateOf<List<Document<Map<String, Any>>>>(listOf()) }
+    var screen = remember { mutableStateOf(Screen.Ideas) }
+
+    Scaffold(bottomBar = { AppBottomBar(screen) }) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            when (screen.value) {
+                Screen.User -> UserScreen(userService, user)
+                else -> IdeasScreen(ideasService, ideas, user.value)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserScreen(userService: UserService, userState: MutableState<Session?>) {
+    val coroutineScope = rememberCoroutineScope()
+
+    LoginPage(
+        user = userState.value,
+        onLogin = { email, password ->
+            coroutineScope.launch {
+                userState.value = userService.login(email, password)
+            }
+        },
+        onRegister = { email, password ->
+            coroutineScope.launch {
+                userState.value = userService.register(email, password)
+            }
+        },
+        onLogout = {
+            coroutineScope.launch {
+                userService.logout()
+                userState.value = null
+            }
+        }
+    )
+}
+
+@Composable
+private fun IdeasScreen(ideasService: IdeasService, ideasState: MutableState<List<Document<Map<String, Any>>>>, user: Session?) {
+    val coroutineScope = rememberCoroutineScope()
+
+    IdeasPage(
+        ideas = ideasState.value,
+        user = user,
+        onSubmit = { title, description ->
+            coroutineScope.launch {
+                val newIdea = ideasService.add(user?.id ?: return@launch, title, description)
+                ideasState.value = ideasState.value.plus(newIdea)
+            }
+        },
+        onRemoveIdea = { ideaId ->
+            coroutineScope.launch {
+                ideasService.remove(ideaId)
+                ideasState.value = ideasState.value.filter { idea -> idea.id != ideaId }
+            }
+        }
+    )
+}

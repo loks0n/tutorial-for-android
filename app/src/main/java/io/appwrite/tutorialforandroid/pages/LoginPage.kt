@@ -21,14 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import io.appwrite.models.Session
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginPage(
-        user: String?,
-        onLogin: (username: String, password: String) -> Unit,
-        onRegister: (username: String, password: String)-> Unit,
-        onLogout: () -> Unit
+    user: Session?,
+    onLogin: (username: String, password: String) -> Unit,
+    onRegister: (username: String, password: String)-> Unit,
+    onLogout: () -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
