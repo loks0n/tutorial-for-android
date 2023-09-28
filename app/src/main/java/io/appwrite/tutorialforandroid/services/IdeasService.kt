@@ -4,8 +4,8 @@ import io.appwrite.Query
 import io.appwrite.models.Document
 import io.appwrite.services.Databases
 
-const val IDEAS_DATABASE_ID = "616c3b5d5f5e4"
-const val IDEAS_COLLECTION_ID = "616c3b5d5f5e5"
+const val IDEAS_DATABASE_ID = "6508783c5dc784d544dd"
+const val IDEAS_COLLECTION_ID = "65087840ab307cb06883"
 
 class IdeasService {
     private var databases: Databases
@@ -14,12 +14,12 @@ class IdeasService {
         this.databases = Databases(client)
     }
 
-    suspend fun fetch() {
-        databases.listDocuments(
+    suspend fun fetch(): List<Document<Map<String, Any>>> {
+        return databases.listDocuments(
             IDEAS_DATABASE_ID,
             IDEAS_COLLECTION_ID,
             listOf(Query.limit(10))
-        )
+        ).documents
     }
 
     suspend fun add(userId: String, title: String, description: String): Document<Map<String, Any>> {

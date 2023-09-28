@@ -1,5 +1,6 @@
-package io.appwrite.tutorialforandroid.pages
+package io.appwrite.tutorialforandroid.ui.screens
 
+import IdeasService
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,24 +12,50 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.appwrite.models.Document
-import io.appwrite.models.Session
+import io.appwrite.models.User
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IdeasPage(
-    ideas: List<Document<Map<String, Any>>>,
-    user: Session?,
-    onSubmit: (title: String, description: String) -> Unit,
-    onRemoveIdea: (ideaId: String) -> Unit
+fun IdeasScreen(
+    user: User<Map<String, Any>>?,
+    ideasService: IdeasService
 ) {
+    var ideas by remember { mutableStateOf<List<Document<Map<String, Any>>>>(listOf()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(ideasService) {
+        coroutineScope.launch {
+            ideas = ideasService.fetch()
+        }
+    }
+
+    fun onSubmit(title: String, description: String) {
+        if (user === null) return
+        coroutineScope.launch {
+            ideas = ideas.plus(ideasService.add(user.id, title, description))
+        }
+    }
+
+    fun onRemove(ideaId: String) {
+        coroutineScope.launch {
+            ideas = ideas.filter { idea -> idea.id !== ideaId }
+            ideasService.remove(ideaId)
+        }
+    }
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
@@ -36,19 +63,22 @@ fun IdeasPage(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Hide the form if user is not logged in
         if (user != null) {
             TextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Title") },
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             )
             TextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             )
             Button(onClick = {
                 onSubmit(title, description)
@@ -62,13 +92,15 @@ fun IdeasPage(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(ideas) { idea ->
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = idea.data["title"]?.toString() ?: "")
+                    Text(text = idea.data["title"]?.toString() ?: "", fontWeight = FontWeight(700))
                     Text(text = idea.data["description"]?.toString() ?: "")
-                    Button(onClick = { onRemoveIdea(idea.id) }) {
-                        Text("Remove")
-                    }
+                    if (user !== null && user.id === idea.data["userId"])
+                        Button(onClick = { onRemove(idea.id) }) {
+                            Text("Remove")
+                        }
                 }
             }
         }
     }
 }
+

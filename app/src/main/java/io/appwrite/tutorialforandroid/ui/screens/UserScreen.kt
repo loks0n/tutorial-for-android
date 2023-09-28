@@ -1,4 +1,4 @@
-package io.appwrite.tutorialforandroid.pages
+package io.appwrite.tutorialforandroid.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,35 +12,58 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import io.appwrite.models.Session
+import io.appwrite.models.User
+import io.appwrite.tutorialforandroid.services.UserService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginPage(
-    user: Session?,
-    onLogin: (username: String, password: String) -> Unit,
-    onRegister: (username: String, password: String)-> Unit,
-    onLogout: () -> Unit
+fun UserScreen(
+    user: MutableState<User<Map<String, Any>>?>,
+    userService: UserService
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
+    fun onLogin( email: String, password: String) {
+        coroutineScope.launch {
+            user.value = userService.login(email, password)
+        }
+    }
+
+    fun onRegister ( email: String, password: String) {
+        coroutineScope.launch {
+            user.value = userService.register(email, password)
+        }
+    }
+
+    fun onLogout() {
+        coroutineScope.launch {
+            userService.logout()
+            user.value = null
+        }
+    }
+
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    if (user !== null) {
+    if (user.value !== null) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Logged in as $user")
+            Text(text = "Logged in as ${user.value!!.email}")
             Button(onClick = { onLogout() }) {
                 Text("Logout")
             }

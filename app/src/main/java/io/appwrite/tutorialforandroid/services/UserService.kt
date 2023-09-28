@@ -4,7 +4,6 @@ import io.appwrite.Client
 import io.appwrite.ID
 import io.appwrite.models.User
 import io.appwrite.exceptions.AppwriteException
-import io.appwrite.models.Session
 import io.appwrite.services.Account
 
 class UserService {
@@ -18,19 +17,20 @@ class UserService {
         return try {
             account.get()
         } catch (e: AppwriteException) {
-            null;
+            null
         }
     }
 
-    suspend fun login(email: String, password: String): Session? {
+    suspend fun login(email: String, password: String): User<Map<String, Any>>? {
         return try {
             account.createEmailSession(email, password)
+            getLoggedIn()
         } catch (e: AppwriteException) {
             null
         }
     }
 
-    suspend fun register(email: String, password: String): Session? {
+    suspend fun register(email: String, password: String): User<Map<String, Any>>? {
         return try {
             account.create(ID.unique(), email, password)
             login(email, password)
