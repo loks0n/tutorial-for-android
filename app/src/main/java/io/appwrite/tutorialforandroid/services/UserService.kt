@@ -6,13 +6,9 @@ import io.appwrite.models.User
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.services.Account
 
-class UserService {
-    private var account: Account
+class UserService(client: Client) {
+    private val account = Account(client)
 
-    constructor(client: Client) {
-        this.account = Account(client)
-    }
-    
     suspend fun getLoggedIn(): User<Map<String, Any>>? {
         return try {
             account.get()
