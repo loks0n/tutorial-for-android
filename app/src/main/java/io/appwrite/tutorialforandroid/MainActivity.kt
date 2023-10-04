@@ -1,8 +1,5 @@
 package io.appwrite.tutorialforandroid
 
-import IdeasService
-import io.appwrite.Client
-import io.appwrite.models.Document
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,13 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.appwrite.models.User
+import io.appwrite.tutorialforandroid.services.Appwrite
+import io.appwrite.tutorialforandroid.services.IdeaService
 import io.appwrite.tutorialforandroid.ui.screens.IdeasScreen
 import io.appwrite.tutorialforandroid.ui.screens.UserScreen
 import io.appwrite.tutorialforandroid.services.UserService
 import io.appwrite.tutorialforandroid.ui.theme.TutorialForAndroidTheme
-
-private const val APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1"
-private const val PROJECT_ID = "650870066ca28da3d330"
 
 enum class Screen {
     User,
@@ -30,17 +26,13 @@ enum class Screen {
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        val client = Client(applicationContext)
-            .setEndpoint(APPWRITE_ENDPOINT)
-            .setProject(PROJECT_ID)
-
-        val userService = UserService(client)
-        val ideasService = IdeasService(client)
-
         super.onCreate(savedInstanceState)
+
+        Appwrite.init(applicationContext)
+
         setContent {
             TutorialForAndroidTheme {
-                AppContent(userService, ideasService)
+                AppContent(Appwrite.users, Appwrite.ideas)
             }
         }
     }
@@ -72,9 +64,9 @@ private fun AppBottomBar(screen: MutableState<Screen>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppContent(userService: UserService, ideasService: IdeasService) {
-    var user = remember { mutableStateOf<User<Map<String, Any>>?>(null) }
-    var screen = remember { mutableStateOf(Screen.Ideas) }
+private fun AppContent(userService: UserService, ideasService: IdeaService) {
+    val user = remember { mutableStateOf<User<Map<String, Any>>?>(null) }
+    val screen = remember { mutableStateOf(Screen.Ideas) }
 
     LaunchedEffect(screen) {
         user.value = userService.getLoggedIn()

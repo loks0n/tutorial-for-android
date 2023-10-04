@@ -35,13 +35,13 @@ fun UserScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    fun onLogin( email: String, password: String) {
+    fun onLogin(email: String, password: String) {
         coroutineScope.launch {
             user.value = userService.login(email, password)
         }
     }
 
-    fun onRegister ( email: String, password: String) {
+    fun onRegister(email: String, password: String) {
         coroutineScope.launch {
             user.value = userService.register(email, password)
         }

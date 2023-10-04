@@ -1,6 +1,5 @@
 package io.appwrite.tutorialforandroid.ui.screens
 
-import IdeasService
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,13 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.appwrite.models.Document
 import io.appwrite.models.User
+import io.appwrite.tutorialforandroid.services.IdeaService
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdeasScreen(
     user: User<Map<String, Any>>?,
-    ideasService: IdeasService
+    ideasService: IdeaService
 ) {
     var ideas by remember { mutableStateOf<List<Document<Map<String, Any>>>>(listOf()) }
     val coroutineScope = rememberCoroutineScope()
@@ -94,7 +93,7 @@ fun IdeasScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(text = idea.data["title"]?.toString() ?: "", fontWeight = FontWeight(700))
                     Text(text = idea.data["description"]?.toString() ?: "")
-                    if (user !== null && user.id === idea.data["userId"])
+                    if (user?.id === idea.data["userId"])
                         Button(onClick = { onRemove(idea.id) }) {
                             Text("Remove")
                         }
